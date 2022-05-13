@@ -1,0 +1,222 @@
+
+[org 0x0100] 
+
+ jmp start 
+
+message: db '            ' 
+shooter2: db '|||' 
+shooter: db '    /// \\\    ' 
+length: dw 12   ; length of name
+slength: dw 15  ;length of shooter
+slength2: dw 3
+ball: db 'o'
+balllength: dw 1
+ 
+; subroutine to clear the screen 
+
+clrscr:
+	  push es 
+	  push ax 
+	  push cx 
+	  push di 
+	  mov ax, 0xb800 
+	  mov es, ax         ;point es to video base 
+	  xor di, di            ;point di to top left column 
+	  mov ax, 0x0720           ;space char in normal attribute 
+	  mov cx, 2000               ;number of screen locations 
+	  cld                                 ;auto increment mode 
+	  rep stosw                      ;clear the whole screen 
+	  pop di 
+	  pop cx 
+	  pop ax 
+	  pop es 
+	  ret 
+
+                       ;subroutine to print a string 
+                       ;takes the x position, y position, attribute, address of string and 
+                       ;its length as parameters 
+printstr:
+	   push bp 
+	   mov bp, sp 
+	   push es 
+	   push ax 
+	   push cx 
+	   push si 
+	   push di 
+	   mov ax, 0xb800 
+	   mov es, ax                    ;point es to video base 
+	   mov al, 80                    ;load al with columns per row 
+	   mul byte [bp+10]         ;multiply with y position 
+	   add ax, [bp+12]            ;add x position 
+	   shl ax, 1                         ;turn into byte offset 
+	   mov di,ax                      ;point di to required location 
+	   mov si, [bp+6]              ;point si to string 
+	   mov cx, [bp+4]             ;load length of string in cx 
+	   mov ah, [bp+8]            ;load attribute in ah 
+
+
+
+
+cld                       ;auto increment mode 
+
+nextchar: 
+
+	  lodsb                       ;load next char in al 
+	  stosw                      ;print char/attribute pair 
+	  loop nextchar        ;repeat for the whole string 
+	  pop di 
+	  pop si 
+	  pop cx 
+	  pop ax 
+	  pop es 
+	  pop bp 
+	  ret 10 
+
+
+ 
+
+delay:
+push cx
+mov cx, 0x0019
+delayLoop1:
+push cx
+mov cx, 0xffff
+delayLoop2:
+loop delayLoop2
+pop cx
+loop delayLoop1
+pop cx
+ret
+
+start: 
+
+                              ;code to print bricks
+	call clrscr                                  ;call the clrscr subroutine 
+	mov cx,1                    ;for y position
+c1:                               ; nested loop
+	mov bx,1
+b1:
+	mov ax, bx
+	push ax                                    ;push x position 
+	mov ax, cx
+	push ax                                     ;push y position 
+	mov ax, 24                               ;white on blue attribute 
+	push ax                                     ;push attribute 
+	mov ax, message 
+	push ax                                     ;push address of message 
+	push word [length]                  ;push message length 
+	call printstr                               ;call the printstr subroutine 
+	add bx, 13                                    ; x positions
+	cmp bx, 66
+	JBE b1
+
+	add cx, 2
+	cmp cx,9                           ; cx must be less than 9 for 5 bricks vertically
+	JBE c1
+
+
+
+;shooter
+	mov ax, 32
+	push ax                                    ;push x position 
+	mov ax, 24
+	push ax                                     ;push y position 
+	mov ax, 4                               ;white on blue attribute 
+	push ax                                     ;push attribute 
+	mov ax, shooter
+	push ax                                     ;push address of message 
+	push word [slength]                  ;push message length 
+	call printstr                               ;call the printstr subroutine 
+
+	mov ax, 38
+	push ax                                    ;push x position 
+	mov ax, 23
+	push ax                                     ;push y position 
+	mov ax, 4                               ;white on blue attribute 
+	push ax                                     ;push attribute 
+	mov ax, shooter2
+	push ax                                     ;push address of message 
+	push word [slength2]                  ;push message length 
+	call printstr                               ;call the printstr subroutine 
+
+;ball
+mov cx,22
+mov bx,39
+
+l1:
+dec cx
+mov ax, bx
+  push ax                                    ;push x position 
+  mov ax, cx
+  push ax                                     ;push y position 
+  mov ax, 3                               ;white on blue attribute 
+  push ax                                     ;push attribute 
+  mov ax, ball
+  push ax                                     ;push address of message 
+  push word [balllength]                  ;push message length 
+ ;call clrscr
+ call printstr 
+ call delay
+ 
+mov ax, bx
+  push ax                                    ;push x position 
+  mov ax, cx
+  push ax                                     ;push y position 
+  mov ax, 0                              ;white on blue attribute 
+  push ax                                     ;push attribute 
+  mov ax, ball
+  push ax                                     ;push address of message 
+  push word [balllength]
+	call printstr
+dec bx 
+
+cmp bx,27
+jnz l1
+je l4
+
+
+
+
+
+l2:
+mov di,40
+mov si,9
+mov ax, di
+  push ax                                    ;push x position 
+  mov ax, si
+  push ax                                     ;push y position 
+  mov ax, 0                               ;white on blue attribute 
+  push ax                                     ;push attribute 
+  mov ax, message 
+  push ax                                     ;push address of message 
+  push word [length]
+ ;push message length 
+  call printstr 
+call delay   
+jmp l3
+
+l4:
+mov di,27
+mov si,9
+mov ax, di
+  push ax                                    ;push x position 
+  mov ax, si
+  push ax                                     ;push y position 
+  mov ax, 0                               ;white on blue attribute 
+  push ax                                     ;push attribute 
+  mov ax, message 
+  push ax                                     ;push address of message 
+  push word [length]
+ ;push message length 
+  call printstr 
+call delay   
+jmp l3
+
+
+
+
+l3:
+	call clrscr
+	
+  mov ax, 0x4c00                        ;terminate program 
+  int 0x21
